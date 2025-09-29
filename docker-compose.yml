@@ -2,9 +2,14 @@ version: '3.8'
 
 services:
   github-runner:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    # Use pre-built image from GitHub Container Registry
+    image: ghcr.io/tfoote000/github-runner:latest
+
+    # Or build locally (comment out 'image' above and uncomment below)
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile
+
     container_name: github-runner
     environment:
       - REPO_URL=https://github.com/YOUR_USERNAME/YOUR_REPO

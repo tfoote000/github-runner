@@ -19,6 +19,18 @@ A production-ready, self-hosted GitHub Actions runner that runs in Docker. This 
 - A GitHub repository where you want to add the runner
 - GitHub Personal Access Token or runner registration token
 
+## Available Images
+
+This project automatically builds and publishes Docker images to GitHub Container Registry (GHCR):
+
+- **Latest stable**: `ghcr.io/tfoote000/github-runner:latest`
+- **Branch builds**: `ghcr.io/tfoote000/github-runner:master`
+- **Tagged releases**: `ghcr.io/tfoote000/github-runner:v1.0.0`
+
+All images are built for multiple architectures:
+- `linux/amd64` (x86_64)
+- `linux/arm64` (ARM64/Apple Silicon)
+
 ## Quick Start
 
 ### 1. Clone or create the project structure
@@ -60,6 +72,25 @@ environment:
 ```
 
 ### 5. Build and run
+
+#### Option A: Use Pre-built Image from GitHub Container Registry (Recommended)
+
+The easiest way to get started is using the pre-built image:
+
+```bash
+# Pull the latest image
+docker pull ghcr.io/tfoote000/github-runner:latest
+
+# Start the runner in detached mode
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+```
+
+#### Option B: Build Locally
+
+If you want to customize the Dockerfile or build locally:
 
 ```bash
 # Build the runner image
