@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  github-runner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: github-runner
+    environment:
+      - REPO_URL=https://github.com/YOUR_USERNAME/YOUR_REPO
+      - RUNNER_TOKEN=${RUNNER_TOKEN}
+      - RUNNER_NAME=docker-runner-01
+      - RUNNER_LABELS=docker,self-hosted,linux
+      - RUNNER_GROUP=default
+    volumes:
+      # Mount Docker socket for docker-in-docker
+      - /var/run/docker.sock:/var/run/docker.sock
+      # Persistent work directory
+      - runner-work:/home/runner/_work
+    restart: unless-stopped
+    # Optional: resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 2G
+
+volumes:
+  runner-work:
+    driver: local
