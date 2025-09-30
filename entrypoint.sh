@@ -31,6 +31,11 @@ if [ "$GID_DOCKER" != "false" ] && [ -S /var/run/docker.sock ]; then
             echo "Fixing Docker group ID mismatch: $CURRENT_GID -> $DOCKER_SOCK_GID"
             sudo groupmod -g "$DOCKER_SOCK_GID" docker
             sudo usermod -aG docker runner
+            
+            # Group ID change requires container restart for runner process to inherit new GID
+            echo "Group ID changed. Container restart required for runner process to inherit new GID."
+            echo "Exiting to trigger container restart..."
+            exit 42  # Special exit code to indicate restart needed
         else
             echo "Docker group ID already correct: $CURRENT_GID"
         fi

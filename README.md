@@ -291,6 +291,16 @@ Controls how the container handles Docker socket permissions when mounting `/var
 - `false` - Disables Docker group fixing (useful if handling permissions externally)
 - Numeric value (e.g., `988`) - Sets the docker group to a specific GID
 
+**⚠️ Important: Automatic Restart Behavior**
+
+When a Docker group ID mismatch is detected and fixed on first startup, the container will automatically restart to ensure the runner process inherits the correct group permissions. This is normal behavior and may appear as:
+
+- Container starting, then immediately restarting once
+- Log message: "Group ID changed. Container restart required for runner process to inherit new GID."
+- Exit code 42 followed by automatic restart
+
+This restart ensures reliable Docker socket access and only happens when a GID change is needed.
+
 **Configuration:**
 
 ```yaml
@@ -580,6 +590,26 @@ Ensure the Docker socket is properly mounted in docker-compose.yml:
 volumes:
   - /var/run/docker.sock:/var/run/docker.sock
 ```
+
+### Container Restarts Immediately After Startup
+
+If you see the container restart once during initial startup, this is likely the automatic Docker group ID fix in action:
+
+**What you'll see:**
+- Container starts and immediately restarts once
+- Log message: "Group ID changed. Container restart required for runner process to inherit new GID."
+- Exit code 42 followed by automatic restart
+- Second startup proceeds normally without restart
+
+**Why this happens:**
+- The container detected a mismatch between the host Docker socket group ID and the container's docker group
+- It automatically fixed the group ID but needs to restart for the runner process to inherit the correct permissions
+- This ensures reliable Docker socket access
+
+**What to do:**
+- This is normal behavior - no action required
+- If the restart loop continues, check Docker socket permissions on the host
+- You can disable this behavior by setting `GID_DOCKER=false` if not using Docker in workflows
 
 ### Cleanup Stale Runners
 
