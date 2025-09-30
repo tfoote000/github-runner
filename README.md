@@ -116,6 +116,8 @@ All environment variables can be configured in the `docker-compose.yml` file. Th
 | `RUNNER_NAME` | No | `docker-runner-$(hostname)` | Name displayed in GitHub |
 | `RUNNER_LABELS` | No | `docker,self-hosted` | Comma-separated labels |
 | `RUNNER_GROUP` | No | `default` | Runner group assignment |
+| `GID_DOCKER` | No | `true` | Docker group handling: `true` (auto-detect), `false` (disabled), or numeric GID |
+| `DOCKER_SOCK_ERROR` | No | `true` | Docker validation: `true` (validate Docker access), `false` (skip validation) |
 
 #### REPO_URL (Required)
 
@@ -253,6 +255,102 @@ environment:
 - Use groups to isolate runners by security level or environment
 - Assign groups based on repository access requirements
 - Document which repositories have access to each group
+
+#### GID_DOCKER (Optional)
+
+Controls how the container handles Docker socket permissions when mounting `/var/run/docker.sock` from the host.
+
+**Default:** `true` (auto-detect)
+
+**Options:**
+- `true` - Automatically detects the Docker socket's group ID and adjusts the container's docker group to match
+- `false` - Disables Docker group fixing (useful if handling permissions externally)
+- Numeric value (e.g., `988`) - Sets the docker group to a specific GID
+
+**Configuration:**
+
+```yaml
+environment:
+  # Auto-detect (default behavior)
+  - GID_DOCKER=true
+  
+  # Disable Docker group fixing
+  - GID_DOCKER=false
+  
+  # Use specific Docker group ID
+  - GID_DOCKER=988
+```
+
+**When to use each option:**
+
+- **`true` (recommended)**: Best for most scenarios. Automatically handles different host configurations
+- **`false`**: When using rootless Docker, alternative permission setups, or when the container runs as root
+- **Numeric value**: When you know your host's Docker group ID and want to avoid auto-detection
+
+**Common Docker group IDs by distribution:**
+- Ubuntu/Debian: typically `999` or `998`
+- CentOS/RHEL: typically `992` or `990`
+- Docker Desktop: varies by platform
+
+**Troubleshooting Docker permissions:**
+
+If you see "permission denied" errors when accessing Docker:
+
+1. Check your host's Docker group ID: `getent group docker | cut -d: -f3`
+2. Set `GID_DOCKER` to that specific value
+3. Or use `GID_DOCKER=true` for automatic detection
+
+This feature solves the common issue where mounting Docker socket results in permission denied errors due to group ID mismatches between host and container.
+
+#### DOCKER_SOCK_ERROR (Optional)
+
+Controls whether the container validates Docker socket access during startup.
+
+**Default:** `true` (validate Docker access)
+
+**Options:**
+- `true` - Validates that Docker socket is mounted and accessible, exits with error if not
+- `false` - Skips Docker validation (useful for containers that don't need Docker)
+
+**Configuration:**
+
+```yaml
+environment:
+  # Validate Docker access (default)
+  - DOCKER_SOCK_ERROR=true
+  
+  # Skip Docker validation
+  - DOCKER_SOCK_ERROR=false
+```
+
+**When to use each option:**
+
+- **`true` (recommended)**: Ensures Docker is properly configured before starting the runner
+- **`false`**: When running containers that don't need Docker access, or when using alternative Docker setups
+
+**What it validates:**
+
+1. Docker socket exists at `/var/run/docker.sock`
+2. Docker daemon is accessible (runs `docker ps` test)
+3. Provides helpful error messages with troubleshooting tips
+
+**Error examples:**
+
+If validation fails, you'll see helpful messages like:
+```
+ERROR: Docker socket not found at /var/run/docker.sock
+Please ensure you mount the Docker socket with: -v /var/run/docker.sock:/var/run/docker.sock
+```
+
+Or:
+```
+ERROR: Docker is not accessible. Common causes:
+1. Docker socket not mounted: add -v /var/run/docker.sock:/var/run/docker.sock
+2. Docker daemon not running on host
+3. Permission issues (try setting GID_DOCKER to your host's Docker group ID)
+```
+
+This feature helps catch Docker configuration issues early and provides clear guidance for fixing them.
 
 ### Resource Limits
 
