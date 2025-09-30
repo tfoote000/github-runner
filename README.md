@@ -2,6 +2,30 @@
 
 A production-ready, self-hosted GitHub Actions runner that runs in Docker. This provides full control over the runner environment and makes it easy to scale and manage your CI/CD infrastructure.
 
+## ⚠️ SECURITY WARNING
+
+**This container requires access to the Docker daemon (`/var/run/docker.sock`) which grants significant privileges:**
+
+- **Full Docker Control**: Can create, modify, and delete any container on the host
+- **Container Escape**: Can mount host filesystem and escape container isolation
+- **Host System Access**: Can potentially access sensitive host files and processes
+- **Network Access**: Can access internal Docker networks and other containers
+
+**Security Implications:**
+- The runner container effectively has root-equivalent access to the host system
+- Malicious or compromised workflows could exploit this access
+- Other containers on the same host may be accessible to the runner
+
+**Use at your own risk.** Only deploy this runner in trusted environments and ensure:
+- Repository access is limited to trusted users
+- Workflow files are reviewed before execution
+- The host system contains no sensitive data that shouldn't be accessible
+- Consider network isolation and other hardening measures for production use
+
+For enhanced security options, see the [Security Considerations](#security-considerations) section below.
+
+---
+
 ## Features
 
 - 🚀 **Clean Ubuntu 22.04 base** - Stable and widely compatible
@@ -567,6 +591,43 @@ To remove offline runners from GitHub:
 
 ## Security Considerations
 
+### Docker Socket Security Risks
+
+The Docker socket mount (`/var/run/docker.sock`) is required for workflows that build Docker images or run containers, but it comes with significant security trade-offs:
+
+**What Docker Socket Access Means:**
+- The container can perform ANY Docker operation on the host
+- Full access to all containers, images, networks, and volumes
+- Ability to mount any host directory into containers
+- Potential to create privileged containers with full host access
+- Access to Docker daemon configuration and secrets
+
+### Risk Mitigation Strategies
+
+**1. Isolation and Environment Controls:**
+- Deploy only on dedicated hosts without sensitive data
+- Use isolated networks away from production systems
+- Avoid running on shared infrastructure or cloud instances with sensitive workloads
+- Consider dedicated build servers with restricted network access
+
+**2. Access Controls:**
+- Limit repository access to trusted users only
+- Review all workflow files before execution
+- Use GitHub's branch protection and required reviews
+- Implement runner groups to control which repositories can access runners
+
+**3. Alternative Security Approaches:**
+- **Docker Socket Proxy**: Use a docker socket proxy to filter dangerous Docker API calls
+- **Rootless Docker**: Run Docker daemon in rootless mode on the host
+- **Container-as-a-Service**: Use platforms with built-in isolation
+- **GitHub-hosted runners**: For public repositories or less sensitive workloads
+
+**4. Monitoring and Detection:**
+- Monitor Docker API calls and container creation
+- Alert on privileged container creation or suspicious mounts
+- Track network connections and file system access
+- Implement log aggregation for security analysis
+
 ### Best Practices
 
 1. **Use repository-specific runners** for sensitive projects
@@ -574,6 +635,8 @@ To remove offline runners from GitHub:
 3. **Limit runner access** using GitHub's runner groups
 4. **Monitor runner logs** for suspicious activity
 5. **Keep the image updated** with security patches
+6. **Review workflow permissions** and limit to minimum required
+7. **Implement network segmentation** to isolate runner traffic
 
 ### Network Isolation
 
@@ -604,42 +667,6 @@ services:
       - /home/runner/_work
 ```
 
-## Advanced Configuration
-
-### Using with Kubernetes
-
-You can deploy this runner on Kubernetes using the included manifests or Helm charts (coming soon).
-
-### Autoscaling
-
-Implement autoscaling based on job queue:
-
-```bash
-# Check pending jobs (requires GitHub API)
-PENDING_JOBS=$(curl -s -H "Authorization: token $GITHUB_TOKEN" \
-  https://api.github.com/repos/$OWNER/$REPO/actions/runs \
-  | jq '.workflow_runs | map(select(.status=="queued")) | length')
-
-# Scale based on pending jobs
-if [ $PENDING_JOBS -gt 5 ]; then
-  docker-compose up -d --scale github-runner=3
-fi
-```
-
-### Custom Networks
-
-Create a dedicated network for your runners:
-
-```bash
-docker network create github-runners
-
-# Update docker-compose.yml
-networks:
-  default:
-    external:
-      name: github-runners
-```
-
 ## Contributing
 
 Contributions are welcome! Please feel free to submit issues or pull requests.
@@ -650,20 +677,4 @@ This project is provided as-is for use with GitHub Actions self-hosted runners.
 
 ## Support
 
-For issues related to:
-- **This Docker setup**: Open an issue in this repository
-- **GitHub Actions**: Check [GitHub Actions Documentation](https://docs.github.com/en/actions)
-- **Runner software**: Visit [actions/runner repository](https://github.com/actions/runner)
-
-## Changelog
-
-### Version 1.0.0 (Current)
-- Initial release with Ubuntu 22.04 base
-- Docker-in-Docker support
-- Automatic runner registration/deregistration
-- Resource limits and persistent storage
-- Comprehensive documentation
-
----
-
-Made with ❤️ for the GitHub Actions community
+No support will be provided at this time, I don't have time to manage it.
