@@ -1,24 +1,6 @@
 #!/bin/bash
 set -e
 
-# Check Docker socket availability if validation is enabled
-# DOCKER_SOCK_ERROR can be "true" (default) to validate or "false" to skip
-DOCKER_SOCK_ERROR="${DOCKER_SOCK_ERROR:-true}"
-
-if [ "$DOCKER_SOCK_ERROR" != "false" ]; then
-    echo "Validating Docker configuration..."
-    
-    # Check if Docker socket exists
-    if [ ! -S /var/run/docker.sock ]; then
-        echo "ERROR: Docker socket not found at /var/run/docker.sock"
-        echo "Please ensure you mount the Docker socket with: -v /var/run/docker.sock:/var/run/docker.sock"
-        exit 1
-    fi
-    
-    # Test Docker connectivity after potential group fixes
-    echo "Testing Docker connectivity..."
-fi
-
 # Some Docker Engines have a different GroupID for the /var/run/docker.sock
 # This bit of code will identify the correct group id and apply it to the runner
 # So that docker does not encounter an auth error
@@ -55,6 +37,24 @@ if [ "$GID_DOCKER" != "false" ] && [ -S /var/run/docker.sock ]; then
     fi
 elif [ "$GID_DOCKER" = "false" ]; then
     echo "Docker group fix disabled (GID_DOCKER=false)"
+fi
+
+# Check Docker socket availability if validation is enabled
+# DOCKER_SOCK_ERROR can be "true" (default) to validate or "false" to skip
+DOCKER_SOCK_ERROR="${DOCKER_SOCK_ERROR:-true}"
+
+if [ "$DOCKER_SOCK_ERROR" != "false" ]; then
+    echo "Validating Docker configuration..."
+    
+    # Check if Docker socket exists
+    if [ ! -S /var/run/docker.sock ]; then
+        echo "ERROR: Docker socket not found at /var/run/docker.sock"
+        echo "Please ensure you mount the Docker socket with: -v /var/run/docker.sock:/var/run/docker.sock"
+        exit 1
+    fi
+    
+    # Test Docker connectivity after potential group fixes
+    echo "Testing Docker connectivity..."
 fi
 
 # Final Docker validation if enabled
